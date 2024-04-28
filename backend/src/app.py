@@ -62,8 +62,17 @@ def login():
     else:
         return failure_response('Invalid username or password', 401)
 
-# Add other routes as needed
+# Add other routes 
+# Routes
+
+@app.route('/create-account', methods=['POST'])
 def create_user(): 
+    # Receive login data from request
+    username = request.form.get('username')
+    name = request.form.get('name')
+    password = request.form.get('password')
+
+    
     pass 
 
 def delete_user(): 

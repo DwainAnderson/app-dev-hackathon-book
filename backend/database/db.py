@@ -73,6 +73,7 @@ class DatabaseDriver(object):
         except sqlite3.Error as e:
             print("SQL execution error:", e)
             return None
+  
 
 # Only <=1 instance of the database driver
 # exists within the app at all times

@@ -18,8 +18,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 
 --password: monkey
-INSERT INTO users (name, username, password)
-VALUES
+INSERT INTO users (name, username, password) VALUES
     ('John Doe', 'johndoe', '$2y$10$QtCybkpkzh7x5VN11APHned4J8fu78.eFXlyAMmahuAaNcbwZ7FH.'),
     ('Jane Smith', 'janesmith','$2y$10$QtCybkpkzh7x5VN11APHned4J8fu78.eFXlyAMmahuAaNcbwZ7FH.');
 

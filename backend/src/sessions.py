@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from database.db import DatabaseDriver
 
 
+
 # Initialize database driver
 db = DatabaseDriver(app.config['DATABASE'], app.config['INIT_SQL'])
 
@@ -34,7 +35,7 @@ def find_session(session_id):
     record = db.exec_sql_query("SELECT * FROM sessions WHERE session = ?;", (session_id,)).fetchone()
     return record
 
-# Provide a function alternative to $current_user
+
 def current_user():
     return session.get('current_user')
 
