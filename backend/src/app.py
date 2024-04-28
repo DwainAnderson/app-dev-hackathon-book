@@ -1,9 +1,8 @@
-import os
-from werkzeug.security import check_password_hash
-from sessions import password_login, session_messages
 import json
+from flask import Flask, g, request
 from database.db import DatabaseDriver
-from flask import Flask, request, jsonify
+from sessions import password_login
+
 
 app = Flask(__name__)
 
@@ -14,22 +13,13 @@ app.config.from_mapping(
 )
 
 # Initialize database
-driver = DatabaseDriver(app.config['DATABASE'], app.config['INIT_SQL'])
+db = DatabaseDriver(app.config['DATABASE'], app.config['INIT_SQL'])
 
 # Connect to the database
 def get_db():
     if 'db' not in g:
-        g.db = driver.conn
+        g.db = db.conn
     return g.db
-
-# Close database connection
-@app.teardown_appcontext
-def close_db(error):
-    db = g.pop('db', None)
-
-    if db is not None:
-        db.close()
-
 
 def success_response(body, code=200):
     """
@@ -44,10 +34,15 @@ def failure_response(message, code=404):
     error_message = {'error': message}
     return json.dumps(error_message), code
 
+# Close database connection
+@app.teardown_appcontext
+def close_db(error):
+    db = g.pop('db', None)
 
-#Routes
+    if db is not None:
+        db.close()
 
-##User Login/Logut Section -> Function Calls to sessions.py and db
+# Routes
 @app.route('/login', methods=['POST'])
 def login():
     # Receive login data from request
@@ -66,8 +61,8 @@ def login():
         return success_response({'message': 'Login successful', 'user': user}, 200)
     else:
         return failure_response('Invalid username or password', 401)
-    
-    
+
+# Add other routes as needed
 def create_user(): 
     pass 
 
@@ -76,7 +71,6 @@ def delete_user():
 
 def update_user():
     pass
-
 
 if __name__ == '__main__':
     app.run()
