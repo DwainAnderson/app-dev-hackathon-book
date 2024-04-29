@@ -1,11 +1,9 @@
 import os
-import app
 from flask import session, request, redirect, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta
 from database.db import DatabaseDriver
-
-
+from init import app
 
 # Initialize database driver
 db = DatabaseDriver(app.config['DATABASE'], app.config['INIT_SQL'])
@@ -125,6 +123,7 @@ def process_session_params():
             session_messages.append("Session expired. Please log in again.")
             return None
 
+
 def create_account(name, username, password, password_confirmation):
     global signup_messages
 
@@ -159,4 +158,3 @@ def create_account(name, username, password, password_confirmation):
         else:
             signup_messages.append("Account creation failed. Please try again.")
     return None
-

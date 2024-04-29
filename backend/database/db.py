@@ -2,6 +2,16 @@ import os
 import sqlite3
 from hashlib import md5
 
+# Initialize SQLite database
+def init_sqlite_db(db_filename, init_sql_filename):
+    conn = sqlite3.connect(db_filename)
+    cursor = conn.cursor()
+    with open(init_sql_filename, 'r') as f:
+        sql = f.read()
+        cursor.executescript(sql)
+    conn.commit()
+    return conn
+
 def init_db(db_filename, init_sql_filename):
     if not os.path.exists(init_sql_filename):
         raise Exception("No such file: " + init_sql_filename)
@@ -47,6 +57,7 @@ def init_db(db_filename, init_sql_filename):
         conn.row_factory = sqlite3.Row
         return conn
 
+
 def singleton(cls):
     instances = {}
 
@@ -57,7 +68,7 @@ def singleton(cls):
 
     return getinstance
 
-    
+
 class DatabaseDriver(object):
     def __init__(self, db_filename, init_sql_filename):
         self.conn = init_db(db_filename, init_sql_filename)
@@ -73,7 +84,9 @@ class DatabaseDriver(object):
         except sqlite3.Error as e:
             print("SQL execution error:", e)
             return None
-  
+        
+    ##CRUD Opperations (read and writes to the database go here)
+
 
 # Only <=1 instance of the database driver
 # exists within the app at all times
