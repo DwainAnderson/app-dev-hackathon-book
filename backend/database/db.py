@@ -1,82 +1,30 @@
-import os
 import sqlite3
-from hashlib import md5
-
-# Initialize SQLite database
-def init_sqlite_db(db_filename, init_sql_filename):
-    conn = sqlite3.connect(db_filename)
-    cursor = conn.cursor()
-    with open(init_sql_filename, 'r') as f:
-        sql = f.read()
-        cursor.executescript(sql)
-    conn.commit()
-    return conn
-
-def init_db(db_filename, init_sql_filename):
-    if not os.path.exists(init_sql_filename):
-        raise Exception("No such file: " + init_sql_filename)
-
-    with open(init_sql_filename, 'r') as init_sql_file:
-        init_sql = init_sql_file.read()
-    init_checksum = md5(init_sql.encode()).hexdigest()
-    init_checksum_filename = init_sql_filename + ".checksum"
-
-    if not os.path.exists(db_filename) and os.path.exists(init_checksum_filename):
-        os.unlink(init_checksum_filename)
-
-    if os.path.exists(db_filename) and not os.path.exists(init_checksum_filename):
-        raise Exception("No checksum for existing database. Please regenerate your database (delete .sqlite file).")
-
-    if os.path.exists(init_checksum_filename):
-        with open(init_checksum_filename, 'r') as init_checksum_file:
-            current_checksum = init_checksum_file.read()
-
-        if init_checksum != current_checksum:
-            raise Exception("Database initialization script has changed. Please regenerate your database (delete " + db_filename + ").")
-
-    if not os.path.exists(db_filename):
-        print("Creating database " + db_filename + " from " + init_sql_filename)
-        conn = sqlite3.connect(db_filename)
-        conn.row_factory = sqlite3.Row
-
-        try:
-            with open(init_sql_filename, 'r') as init_sql_file:
-                conn.executescript(init_sql_file.read())
-
-            with open(init_checksum_filename, 'w') as init_checksum_file:
-                init_checksum_file.write(init_checksum)
-
-            return conn
-        except sqlite3.Error as e:
-            os.unlink(db_filename)
-            print("Failed to initialize database " + db_filename + ". Check your initialization SQL: " + init_sql_filename)
-            raise e
-    else:
-        print("Opening database " + db_filename)
-        conn = sqlite3.connect(db_filename)
-        conn.row_factory = sqlite3.Row
-        return conn
-
+import os
 
 def singleton(cls):
     instances = {}
 
-    def getinstance():
+    def getinstance(*args, **kwargs):
         if cls not in instances:
-            instances[cls] = cls()
+            instances[cls] = cls(*args, **kwargs)
         return instances[cls]
 
     return getinstance
 
-
 class DatabaseDriver(object):
-    def __init__(self, db_filename, init_sql_filename):
-        self.conn = init_db(db_filename, init_sql_filename)
+    def __init__(self, db_filename):
+        db_filename_abs = os.path.abspath(db_filename)
+        self.conn = sqlite3.connect(db_filename_abs)
         self.conn.execute("PRAGMA foreign_keys = 1")
+        self.create_users_table()
+        self.create_sessions_table()
+        self.create_user_favorites_table()
+        self.create_books_table()
+        self.create_genres_table()
+        self.create_book_genres_table()
 
     def exec_sql_query(self, sql, params=()):
         print("Executing SQL:", sql)
-
         cursor = self.conn.cursor()
         try:
             cursor.execute(sql, params)
@@ -84,9 +32,163 @@ class DatabaseDriver(object):
         except sqlite3.Error as e:
             print("SQL execution error:", e)
             return None
-        
-    ##CRUD Opperations (read and writes to the database go here)
 
+    def create_users_table(self):
+        try:
+            self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                username TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL
+            )
+            """)
+        except Exception as e:
+            print(e)
+
+    def create_sessions_table(self):
+        try:
+            self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                session TEXT NOT NULL UNIQUE,
+                last_login TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """)
+        except Exception as e:
+            print(e)
+
+    def create_books_table(self):
+        try:
+            self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS books (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_name TEXT NOT NULL,
+                author_name TEXT NOT NULL,
+                publication_date TEXT NOT NULL,
+                file_extension TEXT NOT NULL
+            )
+            """)
+        except Exception as e:
+            print(e)
+
+    def create_genres_table(self):
+        try:
+            self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS genres (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                genre_name TEXT NOT NULL
+            )
+            """)
+        except Exception as e:
+            print(e)
+
+    def create_book_genres_table(self):
+        try:
+            self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS book_genre (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_id INTEGER NOT NULL,
+                genre_id INTEGER NOT NULL,
+                FOREIGN KEY (book_id) REFERENCES books(id),
+                FOREIGN KEY (genre_id) REFERENCES genres(id)
+            )
+            """)
+        except Exception as e:
+            print(e)
+
+    def create_user_favorites_table(self):
+        try:
+            self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS favorites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                book_id INTEGER NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (book_id) REFERENCES books(id)
+            )
+            """)
+        except Exception as e:
+            print(e)
+
+    def add_book(self, name, author_name, publication_date, file_extension, genre_names):
+        try:
+            cursor = self.conn.cursor()
+            # Insert the book into the books table
+            cursor.execute("INSERT INTO books (book_name, author_name, publication_date, file_extension) VALUES (?, ?, ?, ?)",
+                        (name, author_name, publication_date, file_extension))
+            book_id = cursor.lastrowid
+            # Insert genres into the genres table if they don't exist, and link them to the book in the book_genre table
+            for genre_name in genre_names:
+                cursor.execute("INSERT OR IGNORE INTO genres (genre_name) VALUES (?)", (genre_name,))
+                cursor.execute("SELECT id FROM genres WHERE genre_name = ?", (genre_name,))
+                genre_id = cursor.fetchone()[0]
+                cursor.execute("INSERT INTO book_genre (book_id, genre_id) VALUES (?, ?)", (book_id, genre_id))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print("Error adding book:", e)
+            return False
+
+    def delete_book(self, book_id):
+        try:
+            cursor = self.conn.cursor()
+            # Delete the book from the books table
+            cursor.execute("DELETE FROM books WHERE id = ?", (book_id,))
+            # Delete the entries from the book_genre table associated with the book
+            cursor.execute("DELETE FROM book_genre WHERE book_id = ?", (book_id,))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print("Error deleting book:", e)
+            return False
+
+        ##CRUD Opperations (read and writes to the database go here)
+    def get_all_books(self):
+        cursor = self.conn.execute("SELECT * FROM books")
+        books = cursor.fetchall()
+        return books
+
+    def get_book_by_id(self, book_id):
+        cursor = self.conn.execute("SELECT * FROM books WHERE id = ?", (book_id,))
+        book = cursor.fetchone()
+        return book
+
+    def get_all_favorites(self):
+        cursor = self.conn.execute("SELECT * FROM favorites")
+        favorites = cursor.fetchall()
+        return favorites
+
+    def favorite_book(self, user_id, book_id):
+        try:
+            self.conn.execute("INSERT INTO favorites (user_id, book_id) VALUES (?, ?)", (user_id, book_id))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print("Error favoriting book:", e)
+            return False
+
+    def unfavorite_book(self, user_id, book_id):
+        try:
+            self.conn.execute("DELETE FROM favorites WHERE user_id = ? AND book_id = ?", (user_id, book_id))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print("Error unfavoriting book:", e)
+            return False
+
+    def filter_by_genre(self, genre_name):
+        cursor = self.conn.execute("""
+            SELECT b.*
+            FROM books b
+            JOIN book_genre bg ON b.id = bg.book_id
+            JOIN genres g ON bg.genre_id = g.id
+            WHERE g.genre_name = ?
+        """, (genre_name,))
+        filtered_books = cursor.fetchall()
+        return filtered_books
 
 # Only <=1 instance of the database driver
 # exists within the app at all times

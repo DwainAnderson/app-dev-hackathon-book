@@ -2,11 +2,8 @@ import os
 from flask import session, request, redirect, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta
-from database.db import DatabaseDriver
-from init import app
+from init import app, db
 
-# Initialize database driver
-db = DatabaseDriver(app.config['DATABASE'], app.config['INIT_SQL'])
 
 # User Messages
 session_messages = []
@@ -20,10 +17,6 @@ def find_user(user_id):
     record = db.exec_sql_query("SELECT * FROM users WHERE id = ?;", (user_id,)).fetchone()
     return record
 
-# Find group's record from user_id
-def find_group(group_id):
-    record = db.exec_sql_query("SELECT * FROM groups WHERE id = ?;", (group_id,)).fetchone()
-    return record
 
 # Find user's record from session hash
 def find_session(session_id):
@@ -40,17 +33,6 @@ def current_user():
 # Did the user log in?
 def is_user_logged_in():
     return current_user() is not None
-
-# Is the user a member of the group?
-def is_user_member_of(group_id):
-    if current_user() is None:
-        return False
-
-    record = db.exec_sql_query(
-        "SELECT id FROM user_groups WHERE (group_id = ?) AND (user_id = ?);",
-        (group_id, current_user()['id'])
-    ).fetchone()
-    return record is not None
 
 # Login with username and password
 def password_login(username, password):

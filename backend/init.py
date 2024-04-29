@@ -1,4 +1,5 @@
 from flask import Flask
+from database.db import DatabaseDriver
 
 app = Flask(__name__)
 
@@ -13,10 +14,11 @@ app.config.update(
 )
 
 app.config.from_mapping(
-    DATABASE="database/site.sqlite",
-    INIT_SQL="database/init.sql"
+    DATABASE="backend/database/site.sqlite",
 )
 
+# Initialize database
+db = DatabaseDriver(app.config['DATABASE'])
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=6000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
