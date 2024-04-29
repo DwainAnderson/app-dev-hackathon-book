@@ -1,6 +1,7 @@
-from flask import Flask, session
+from flask import Flask
 
 app = Flask(__name__)
+
 app.config.update(
     SHORT_OPEN_TAG=0,
     ERROR_REPORTING=-1,
@@ -10,11 +11,12 @@ app.config.update(
     ERROR_LOG=None,
     OUTPUT_BUFFERING='On'
 )
+
 app.config.from_mapping(
     DATABASE="database/site.sqlite",
     INIT_SQL="database/init.sql"
 )
-app.secret_key = 'your_secret_key_here'
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=6000, debug=True)

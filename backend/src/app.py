@@ -5,17 +5,6 @@ from flask import Flask, g, request
 import json
 
 
-import sys
-
-def is_in_virtual_environment():
-    return hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
-
-if is_in_virtual_environment():
-    print("Running in a virtual environment")
-else:
-    print("Not running in a virtual environment")
-
-
 # Initialize database
 db_connection = init_sqlite_db("db/site.sqlite", "db/init.sql")
 db = DatabaseDriver(app.config['DATABASE'], app.config['INIT_SQL'])

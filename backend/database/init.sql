@@ -1,7 +1,7 @@
--- database: ../test.sqlite
-
+-- database: /workspaces/hack-challenge-project/backend/database/test.sqlite
+--
 -- Sessions table
-CREATE TABLE sessions IF NOT EXISTS  (
+CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
   session TEXT NOT NULL UNIQUE,
@@ -9,13 +9,13 @@ CREATE TABLE sessions IF NOT EXISTS  (
   FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
--- Users table
-CREATE TABLE user IF NOT EXISTS  (
+CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   username TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL
 );
+
 
 
 --password: monkey

@@ -1,6 +1,5 @@
 {
     "breadcrumbs.enabled": true,
-    "css.validate": false,
     "debug.console.collapseIdenticalLines": false,
     "debug.console.wordWrap": true,
     "debug.internalConsoleOptions": "openOnSessionStart",
@@ -16,21 +15,11 @@
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
     "git.autofetch": true,
-    "html.format.wrapLineLength": 0,
     "json.format.keepLines": true,
     "workbench.editor.highlightModifiedTabs": true,
     "workbench.editor.wrapTabs": true,
     "workbench.tree.indent": 18,
     "editor.defaultFormatter": "ms-python.python",
-    "[css]": {
-        "editor.defaultFormatter": "vscode.css-language-features"
-    },
-    "[html]": {
-        "editor.defaultFormatter": "vscode.html-language-features"
-    },
-    "[javascript]": {
-        "editor.defaultFormatter": "vscode.typescript-language-features"
-    },
     "[python]": {
         "editor.defaultFormatter": "ms-python.python",
         "editor.formatOnSave": true
