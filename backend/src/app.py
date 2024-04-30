@@ -135,5 +135,40 @@ def filter_by_genre():
         return success_response(books)
     return failure_response(f"No books found for genre '{genre_name}'")
 
+@app.route('/sort-by-ratings/<int:min_rating>/<int:max_rating>/<string:order>', methods=['POST'])
+def sort_by_ratings(min_rating, max_rating, order):
+    if order not in ['asc', 'desc']:
+        return failure_response("Invalid order parameter")
+
+    if min_rating < 0 or max_rating > 5:
+        return failure_response("Invalid rating range")
+
+    try:
+        cursor = db.exec_sql_query("SELECT * FROM books WHERE ratings >= ? AND ratings <= ? ORDER BY ratings " + order.upper(), (min_rating, max_rating))
+        books = cursor.fetchall()
+        return success_response(books)
+    except Exception as e:
+        return failure_response("Failed to sort by ratings")
+
+@app.route('/add-ratings/<int:user_id>/<int:book_id>/<int:rating>', methods=['POST'])
+def add_ratings(user_id, book_id, rating):
+    try:
+        # Check if the user exists
+        user = db.get_user_by_id(user_id)
+        if not user:
+            return failure_response("User not found")
+
+        # Check if the rating is valid
+        if rating < 0 or rating > 5:
+            return failure_response("Invalid rating")
+
+        # Add the rating to the book
+        if db.add_ratings(book_id, rating):
+            return success_response("Rating added successfully")
+        else:
+            return failure_response("Failed to add rating")
+    except Exception as e:
+        return failure_response("Failed to add rating")
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)

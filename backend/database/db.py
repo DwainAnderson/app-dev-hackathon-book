@@ -68,7 +68,9 @@ class DatabaseDriver(object):
                 book_name TEXT NOT NULL,
                 author_name TEXT NOT NULL,
                 publication_date TEXT NOT NULL,
-                file_extension TEXT NOT NULL
+                file_extension TEXT NOT NULL,
+                ratings REAL NOT NULL DEFAULT 0,
+                n_ratings INTEGER NOT NULL DEFAULT 0
             )
             """)
         except Exception as e:
@@ -113,39 +115,40 @@ class DatabaseDriver(object):
         except Exception as e:
             print(e)
 
-    def add_book(self, name, author_name, publication_date, file_extension, genre_names):
+    def add_ratings(self, book_id, rating):
         try:
             cursor = self.conn.cursor()
-            # Insert the book into the books table
-            cursor.execute("INSERT INTO books (book_name, author_name, publication_date, file_extension) VALUES (?, ?, ?, ?)",
-                        (name, author_name, publication_date, file_extension))
-            book_id = cursor.lastrowid
-            # Insert genres into the genres table if they don't exist, and link them to the book in the book_genre table
-            for genre_name in genre_names:
-                cursor.execute("INSERT OR IGNORE INTO genres (genre_name) VALUES (?)", (genre_name,))
-                cursor.execute("SELECT id FROM genres WHERE genre_name = ?", (genre_name,))
-                genre_id = cursor.fetchone()[0]
-                cursor.execute("INSERT INTO book_genre (book_id, genre_id) VALUES (?, ?)", (book_id, genre_id))
-            self.conn.commit()
-            return True
+            # Get the current ratings and number of ratings for the book
+            cursor.execute("SELECT ratings, n_ratings FROM books WHERE id = ?", (book_id,))
+            row = cursor.fetchone()
+            if row:
+                current_ratings, n_ratings = row
+                # Calculate the new average rating and increment the number of ratings
+                new_ratings = (current_ratings * n_ratings + rating) / (n_ratings + 1)
+                n_ratings += 1
+                # Update the ratings and n_ratings columns for the book
+                cursor.execute("UPDATE books SET ratings = ?, n_ratings = ? WHERE id = ?", (new_ratings, n_ratings, book_id))
+                self.conn.commit()
+                return True
+            else:
+                print("Book not found")
+                return False
         except sqlite3.Error as e:
-            print("Error adding book:", e)
+            print("Error adding ratings:", e)
             return False
 
-    def delete_book(self, book_id):
+    def sort_by_ratings(self, min_rating, max_rating, ascending=True):
         try:
-            cursor = self.conn.cursor()
-            # Delete the book from the books table
-            cursor.execute("DELETE FROM books WHERE id = ?", (book_id,))
-            # Delete the entries from the book_genre table associated with the book
-            cursor.execute("DELETE FROM book_genre WHERE book_id = ?", (book_id,))
-            self.conn.commit()
-            return True
+            # Specify the order for sorting based on the ascending parameter
+            order = "ASC" if ascending else "DESC"
+            cursor = self.conn.execute("SELECT * FROM books WHERE ratings >= ? AND ratings <= ? ORDER BY ratings " + order, (min_rating, max_rating))
+            filtered_books = cursor.fetchall()
+            return filtered_books
         except sqlite3.Error as e:
-            print("Error deleting book:", e)
-            return False
+            print("Error sorting by ratings:", e)
+            return []
 
-        ##CRUD Opperations (read and writes to the database go here)
+    ##CRUD Opperations (read and writes to the database go here)
     def get_all_books(self):
         cursor = self.conn.execute("SELECT * FROM books")
         books = cursor.fetchall()
